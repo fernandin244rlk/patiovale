@@ -1,0 +1,132 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Pátio de Desvio AMV · Vale</title>
+<link rel="icon" type="image/png" href="img/vale-logo.png">
+<meta name="theme-color" content="#00939A">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: palco 3D à esquerda, painel de operação à direita; empilha em telas estreitas */
+:root{--bg:#eef3f3;--panel:#ffffff;--panel2:#f2f7f7;--line:#d3dfdf;--fg:#26373a;--mut:#667679;--sig:#ECB833;--ok:#1f9d57;--bad:#d9382c;--cy:#00939A;--teal:#00939A;--teal2:#006d73;--gray:#77787B;color-scheme:light;
+--sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;--mono:'IBM Plex Mono',ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 var(--sans);overflow:hidden}
+#app{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:100%}
+#stage{position:relative;min-width:0;min-height:0;background:#b9d0e2}
+#stage canvas{display:block;width:100%;height:100%}
+#panel{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:14px max(16px,env(safe-area-inset-right,0px)) 24px 16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.01em}
+.sub{color:var(--mut);font-size:12.5px;margin-top:2px}
+section{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:11px 12px;display:flex;flex-direction:column;gap:9px;min-width:0}
+h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin:0;font-weight:600}
+label{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px}
+select,button{font:inherit;color:var(--fg)}
+select{background:#fff;border:1px solid var(--line);border-radius:4px;padding:5px 8px;min-width:0;max-width:190px}
+button{background:#fff;border:1px solid #b9cccc;border-radius:4px;padding:7px 10px;cursor:pointer;text-align:left}
+button:hover:not(:disabled){background:#e3f1f1;border-color:var(--teal)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--cy);outline-offset:1px}
+button:disabled{opacity:.4;cursor:not-allowed}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.btns .wide{grid-column:1/-1}
+.pri{background:var(--sig);color:#16191c;border-color:var(--sig);font-weight:600}
+.pri:hover:not(:disabled){background:#f6c94f;border-color:#f6c94f}
+.row{display:flex;flex-direction:column;gap:1px;width:100%}
+.row.sel{border-color:var(--cy);background:#dff2f2}
+.row b{font-weight:600;font-size:13px}.row span{font-size:12px;color:var(--mut)}
+#consists{display:flex;flex-direction:column;gap:5px;max-height:190px;overflow-y:auto}
+#selinfo{font-size:12.5px;color:var(--mut);min-height:2.7em}
+#switches{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.chip{display:flex;flex-direction:column;gap:0;padding:5px 7px;position:relative}
+.chip b{font-family:var(--mono);font-size:12px}.chip i{font-style:normal;font-size:10.5px;color:var(--mut)}
+.chip .dot{position:absolute;right:7px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 2px #0006}
+.chip.rev .dot{background:var(--sig)}
+.cams{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.cams button{text-align:center;font-size:12.5px;padding:6px 4px}
+.leg{display:grid;grid-template-columns:auto 1fr;gap:6px 9px;align-items:center;font-size:12.5px}
+.sw{width:16px;height:16px;border-radius:3px;display:inline-block}
+#log{font:12px/1.4 var(--mono);max-height:170px;overflow-y:auto;display:flex;flex-direction:column;color:#3d5154}
+#log div{padding:2px 0;border-bottom:1px solid #dbe6e6}#log .err{color:var(--bad)}#log .ok{color:var(--ok)}
+.chk{justify-content:flex-start}
+input[type=range]{accent-color:var(--sig);width:140px}
+#loading{position:absolute;inset:0;background:#ffffffee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:5;color:var(--fg)}
+#loading .tr{width:min(320px,70%);height:6px;background:#d3dfdf;border-radius:3px;overflow:hidden}
+#bar{height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--sig));transition:width .2s}
+.tools{position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:12px;display:flex;gap:8px;align-items:center;z-index:3}.tools button{background:#ffffffe8;color:var(--fg);border:1px solid #9fb8b8;font-weight:600;padding:8px 14px}.tools button.on{background:var(--sig);color:#26373a;border-color:var(--sig)}#state{background:var(--bad);color:#fff;font-size:12px;font-weight:600;padding:4px 8px;border-radius:4px;letter-spacing:.06em}#state:empty{display:none}
+#tele{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:12.5px;color:var(--mut)}#tele b{color:var(--fg);font-family:var(--mono);font-weight:500;text-align:right}
+.drive{display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:6px}.drive button{text-align:center;font-weight:600;padding:11px 4px}
+.banner{position:absolute;left:12px;right:12px;top:58px;margin:0 auto;max-width:560px;background:#ff3b30;color:#fff;font-weight:600;font-size:13px;padding:8px 12px;border-radius:4px;z-index:4;text-align:center;box-shadow:0 2px 10px #0006}
+.hint{position:absolute;left:max(12px,env(safe-area-inset-left,0px));bottom:12px;background:#ffffffe6;border:1px solid #9fb8b8;color:#35484b;font-size:12px;padding:6px 9px;border-radius:4px;pointer-events:none;max-width:calc(100% - 24px)}
+
+/* Identidade Vale */
+#panel{border-top:5px solid var(--teal);border-image:linear-gradient(90deg,var(--teal) 0 70%,var(--sig) 70% 100%) 1;border-left:1px solid var(--line)}
+.brand{display:flex;flex-direction:column;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.brand img{height:42px;width:auto;align-self:flex-start;display:block}
+h1{color:var(--teal2);font-size:17px}
+.sub{color:var(--mut)}
+h2{color:var(--teal2)}
+section{background:var(--panel2);border-color:var(--line);box-shadow:0 1px 0 #fff inset}
+input[type=checkbox]{accent-color:var(--teal)}
+#loading img{height:54px}
+.hint b{color:var(--teal2)}
+@media (max-width:860px){body{overflow:auto}#app{grid-template-columns:1fr;grid-template-rows:62vh auto;height:auto}#stage{height:62vh}#panel{border-left:0;border-top:1px solid var(--line);padding-left:max(16px,env(safe-area-inset-left,0px))}}
+</style>
+<div id="app">
+  <div id="stage">
+    <div id="loading"><img src="img/vale-logo.png" alt="Vale"><div id="loadmsg">Carregando modelos 3D…</div><div class="tr"><div id="bar"></div></div></div>
+    <div class="tools"><button id="btnPause">⏸ Pausar</button><button id="btnEB">Freio de emergência</button><span id="state"></span></div>
+    <div id="amvHint" class="banner" hidden></div>
+    <div class="hint">Arraste para girar · roda/pinça para zoom · botão direito move · clique num AMV para alternar · ↑ frente ↓ ré</div>
+  </div>
+  <aside id="panel">
+    <div class="brand"><img src="img/vale-logo.png" alt="Vale"><div><h1>Pátio de Desvio · AMV</h1><div class="sub">5 linhas de pátio + linha 6 (morta, desvio de carga). Escala real, bitola 1,435 m.</div></div></div>
+
+    <section><h2>Esquema de AMV</h2>
+      <label>Disposição<select id="selPreset"><option value="A">A · Escada simples</option><option value="B">B · Escada + comunicações</option><option value="C">C · Escada + tesouras</option><option value="D">D · Completo (todas)</option></select></label>
+      <label>Número do AMV<select id="selN"><option value="6">nº 6 (1:6)</option><option value="8" selected>nº 8 (1:8)</option><option value="10">nº 10 (1:10)</option></select></label>
+      <label>Acionamento<select id="selAct"><option value="manual">Alavanca + bandeirola</option><option value="motor">Máquina elétrica + farol</option></select></label>
+      <label class="chk"><input type="checkbox" id="chkLoaded" checked>&nbsp;Vagões carregados</label>
+      <label class="chk"><input type="checkbox" id="chkLabels" checked>&nbsp;Nomes dos AMVs</label>
+      <label class="chk"><input type="checkbox" id="chkMarkers" checked>&nbsp;Anéis de engate</label>
+    </section>
+
+    <section><h2>Composições</h2>
+      <div id="consists"></div><div id="selinfo"></div>
+      <div class="btns">
+        <button id="btnUncouple" class="pri" disabled>Desacoplar no engate</button>
+        <button id="btnCouple" disabled>Reacoplar vizinho</button>
+        <button id="btnHelper" disabled>Helper acopla na selecionada</button>
+        <button id="btnRelease" disabled>Soltar helper do corte</button>
+      </div>
+    </section>
+
+    <section><h2>Condução</h2>
+      <div class="drive"><button id="btnRev" disabled>◀ Ré</button><button id="btnStop" disabled>■ Parar</button><button id="btnFwd" class="pri" disabled>Frente ▶</button></div>
+      <div class="sub">Selecione uma composição com locomotiva. Ela segue os AMVs como estão alinhados e para antes de cada AMV de ponta. Teclas: ↑ frente · ↓ ré · X parar.</div>
+      <label class="chk"><input type="checkbox" id="chkAMV" checked>&nbsp;Parar antes de cada AMV</label>
+      <label class="chk"><input type="checkbox" id="chkAuto" checked>&nbsp;Acoplar ao encostar em outra composição</label>
+    </section>
+
+    <section><h2>Manobra</h2>
+      <label>Levar selecionada para<select id="selLine"><option value="L1">Linha 1</option><option value="L2">Linha 2</option><option value="L3">Linha 3</option><option value="L4">Linha 4</option><option value="L5" selected>Linha 5</option><option value="L6">Linha 6 (morta)</option></select></label>
+      <div class="btns"><button id="btnMove" disabled>Mover</button><button id="btnReset">Reiniciar cenário</button>
+      <button id="btnSeq" class="pri wide">Demonstração: desacoplar, helper acopla e leva o corte</button></div>
+      <label>Velocidade<span><input type="range" id="rngSpeed" min="1" max="8" step="1" value="3"> <span id="lblSpeed">×3</span></span></label>
+      <label class="chk"><input type="checkbox" id="chkFollow" checked>&nbsp;Câmera segue a manobra</label>
+    </section>
+
+    <section><h2>AMVs (clique para alternar)</h2><div id="switches"></div>
+      <div class="leg"><span class="sw" style="background:#1fa64a"></span><span>Verde: posição normal (via direta)</span><span class="sw" style="background:#f2c200"></span><span>Amarelo: posição reversa (desvio)</span></div>
+    </section>
+
+    <section><h2>Física da composição</h2><div id="tele">Selecione uma composição para ver a física.</div><div class="sub">Folgas e molas nos engates, corrida de folga ao partir e frear, impacto ao acoplar, rolagem e arfagem dos vagões nas curvas.</div></section>
+
+    <section><h2>Câmera</h2><div class="cams">
+      <button data-cam="geral">Geral</button><button data-cam="cab">Cabeceira</button><button data-cam="amv1">AMV T1</button>
+      <button data-cam="trem">Trem</button><button data-cam="helper">Helper</button><button data-cam="morta">Linha morta</button><button data-cam="tesoura">Tesoura</button></div></section>
+
+    <section><h2>Registro</h2><div id="log"></div></section>
+  </aside>
+</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module" src="js/main.js"></script>
+
+</body></html>
